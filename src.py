@@ -1,6 +1,6 @@
 import pandas as pd
-import streamlit as st
 import numpy as np
+import streamlit as st
 
 st.title('Premier League: Interactive Data Analysis')
 
@@ -16,21 +16,23 @@ period = st.slider('Period:',
 
 df_club = df_epl[
     ((df_epl['Team_Home'] == club) | (df_epl['Team_Away'] == club)) &
-    (df_epl['Season'].between(period[0], period[1], inclusive=True))
-    ]
+    (df_epl['Season'].between(period[0], period[1], inclusive=True))]
+df_club['HomeTeam'] = df_club['Team_Home'].map(lambda x: True if (x == club) else False)
+
+def findResult(row):
+    if (row['AG'] == row['HG']):
+        return 'Draw'
+    elif (((row['HomeTeam'] == True) & (row['HG'] > row['AG'])) |
+          ((row['HomeTeam'] == False) & (row['AG'] > row['HG']))):
+        return 'Won'
+    else:
+        return 'Lost'
+
+df_club['Result'] = df_club.apply(findResult, axis=1)
 
 match_stats = {'Games played': len(df_club),
-               'Won (Home)': len(df_club[(df_club['Team_Home'] == club) & (df_club['HG'] > df_club['AG'])]),
-               'Lost (Home)': len(df_club[(df_club['Team_Home'] == club) & (df_club['HG'] < df_club['AG'])]),
-               'Won (Away)': len(df_club[(df_club['Team_Away'] == club) & (df_club['AG'] > df_club['HG'])]),
-               'Lost (Away)': len(df_club[(df_club['Team_Away'] == club) & (df_club['AG'] < df_club['HG'])]),
-               'Draws': len(df_club[df_club['AG'] == df_club['HG']]),
-               'Clean sheets': len(df_club[((df_club['Team_Away'] == club) & (df_club['HG'] == 0)) &
-                                           ((df_club['Team_Home'] == club) & (df_club['AG'] == 0))]),
-               'Jantjes': len(df_club[((df_club['Team_Away'] == club) & ((df_club['AG'] - df_club['HG']) >= 3)) &
-                                      ((df_club['Team_Home'] == club) & ((df_club['HG'] - df_club['AG']) >= 3))])}
-
-match_stats['Won (Total)'] = match_stats['Won (Home)'] + match_stats['Won (Away)']
-match_stats['Lost (Total)'] = match_stats['Lost (Home)'] + match_stats['Lost (Away)']
+               'Won': len(df_club[df_club['Result'] == 'Won']),
+               'Lost': len(df_club[df_club['Result'] == 'Lost']),
+               'Draws': len(df_club[df_club['Result'] == 'Draw'])}
 
 st.write(match_stats)
